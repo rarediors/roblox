@@ -1,0 +1,163 @@
+-- BACKDOOR ADMIN SCRIPT (SELIWARE)
+local player = game:GetService("Players").LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "BackdoorAdmin"
+gui.ResetOnSpawn = false
+gui.Parent = gethui()
+
+local main = Instance.new("Frame", gui)
+main.Name = "Main"
+main.Size = UDim2.new(0, 220, 0, 380)
+main.Position = UDim2.new(0, 10, 0.3, 0)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.BorderSizePixel = 2
+main.BorderColor3 = Color3.fromRGB(100, 100, 100)
+main.Active = true
+main.Draggable = true
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Text = "Backdoor Admin"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+
+local layout = Instance.new("UIListLayout", main)
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function makeBtn(name, text, order, color)
+    local btn = Instance.new("TextButton", main)
+    btn.Name = name
+    btn.Size = UDim2.new(0.9, 0, 0, 28)
+    btn.Position = UDim2.new(0.05, 0, 0, 0)
+    btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 60)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 12
+    btn.LayoutOrder = order
+    return btn
+end
+
+-- Buttons
+local staminaBtn = makeBtn("Stamina", "Infinite Stamina: OFF", 1)
+local energyBtn = makeBtn("Energy", "Infinite Energy: OFF", 2)
+local hungerBtn = makeBtn("Hunger", "Infinite Hunger: OFF", 3)
+local espBtn = makeBtn("ESP", "ESP: OFF", 4)
+local coalBtn = makeBtn("Coal", "Bring Coal", 5, Color3.fromRGB(50, 50, 50))
+local bloxyBtn = makeBtn("Bloxy", "Bring BloxyCola", 6, Color3.fromRGB(150, 50, 50))
+local cakeBtn = makeBtn("Cake", "Bring Cake", 7, Color3.fromRGB(150, 120, 50))
+local batteryBtn = makeBtn("Battery", "Bring Battery", 8, Color3.fromRGB(50, 120, 50))
+local allBtn = makeBtn("All", "Bring ALL Items", 9, Color3.fromRGB(100, 50, 150))
+
+-- Variables
+local infStamina, infEnergy, infHunger, espOn = false, false, false, false
+local espObjs = {}
+local statLoop, espLoop = nil, nil
+
+local toolsFolder = game.ReplicatedStorage.GameAssets.Tools
+local itemsFolder = workspace._Game._Interactables
+
+-- Stat loop
+local function updateStatLoop()
+    if statLoop then statLoop:Disconnect() statLoop = nil end
+    if infStamina or infEnergy or infHunger then
+        statLoop = game:GetService("RunService").Heartbeat:Connect(function()
+            if infStamina and player:FindFirstChild("StaminaVal") then player.StaminaVal.Value = 150 end
+            if infEnergy and player:FindFirstChild("EnergyVal") then player.EnergyVal.Value = 100 end
+            if infHunger and player:FindFirstChild("HungerVal") then player.HungerVal.Value = 100 end
+        end)
+    end
+end
+
+-- ESP
+local function toggleESP()
+    espOn = not espOn
+    espBtn.Text = espOn and "ESP: ON" or "ESP: OFF"
+    espBtn.BackgroundColor3 = espOn and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+    
+    if espOn then
+        espLoop = game:GetService("RunService").Heartbeat:Connect(function()
+            for _, item in pairs(itemsFolder:GetChildren()) do
+                if (item.Name == "Coal" or item.Name == "BloxyCola" or item.Name == "Cake" or item.Name == "Battery") and not espObjs[item] then
+                    local hl = Instance.new("Highlight", item)
+                    hl.FillColor = Color3.fromRGB(0, 255, 0)
+                    hl.FillTransparency = 0.5
+                    local bb = Instance.new("BillboardGui", item)
+                    bb.Size = UDim2.new(0, 80, 0, 30)
+                    bb.StudsOffset = Vector3.new(0, 2, 0)
+                    bb.AlwaysOnTop = true
+                    local txt = Instance.new("TextLabel", bb)
+                    txt.Size = UDim2.new(1, 0, 1, 0)
+                    txt.BackgroundTransparency = 1
+                    txt.Text = item.Name
+                    txt.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    txt.TextStrokeTransparency = 0
+                    txt.Font = Enum.Font.GothamBold
+                    txt.TextScaled = true
+                    espObjs[item] = {hl, bb}
+                end
+            end
+            for item, objs in pairs(espObjs) do
+                if not item.Parent then
+                    for _, o in pairs(objs) do o:Destroy() end
+                    espObjs[item] = nil
+                end
+            end
+        end)
+    else
+        if espLoop then espLoop:Disconnect() espLoop = nil end
+        for item, objs in pairs(espObjs) do
+            for _, o in pairs(objs) do o:Destroy() end
+        end
+        espObjs = {}
+    end
+end
+
+-- Bring items
+local function bringItem(name)
+    local count = 0
+    for _, item in pairs(itemsFolder:GetChildren()) do
+        if item.Name == name then
+            item:Destroy()
+            local tool = toolsFolder:FindFirstChild(name)
+            if tool then tool:Clone().Parent = player.Backpack count = count + 1 end
+        end
+    end
+    print("Brought "..count.."x "..name)
+end
+
+-- Connections
+staminaBtn.MouseButton1Click:Connect(function()
+    infStamina = not infStamina
+    staminaBtn.Text = infStamina and "Infinite Stamina: ON" or "Infinite Stamina: OFF"
+    staminaBtn.BackgroundColor3 = infStamina and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+    updateStatLoop()
+end)
+
+energyBtn.MouseButton1Click:Connect(function()
+    infEnergy = not infEnergy
+    energyBtn.Text = infEnergy and "Infinite Energy: ON" or "Infinite Energy: OFF"
+    energyBtn.BackgroundColor3 = infEnergy and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+    updateStatLoop()
+end)
+
+hungerBtn.MouseButton1Click:Connect(function()
+    infHunger = not infHunger
+    hungerBtn.Text = infHunger and "Infinite Hunger: ON" or "Infinite Hunger: OFF"
+    hungerBtn.BackgroundColor3 = infHunger and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+    updateStatLoop()
+end)
+
+espBtn.MouseButton1Click:Connect(toggleESP)
+coalBtn.MouseButton1Click:Connect(function() bringItem("Coal") end)
+bloxyBtn.MouseButton1Click:Connect(function() bringItem("BloxyCola") end)
+cakeBtn.MouseButton1Click:Connect(function() bringItem("Cake") end)
+batteryBtn.MouseButton1Click:Connect(function() bringItem("Battery") end)
+allBtn.MouseButton1Click:Connect(function()
+    bringItem("Coal") bringItem("BloxyCola") bringItem("Cake") bringItem("Battery")
+end)
+
+print("Backdoor Admin Loaded!")
